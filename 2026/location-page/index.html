@@ -16,7 +16,7 @@ change the 'latitude' and 'longitude' properties to a location around 0.001
 degrees from your real location.
 -->
 <a-scene vr-mode-ui='enabled: false' arjs='sourceType: webcam; videoTexture: true; debugUIEnabled: false' renderer='antialias: true; alpha: true'>
-	<a-camera gps-new-camera='gpsMinDistance: 5' camera='far: 4'></a-camera>
+	<a-camera gps-new-camera='gpsMinDistance: 5' camera='far: 20'></a-camera>
 	<a-entity material='color: red' geometry='primitive: box' gps-new-entity-place="latitude: 32.309656; longitude: -90.858118" scale="10 10 10"></a-entity>
 </a-scene>
 	
