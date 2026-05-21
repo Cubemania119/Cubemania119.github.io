@@ -17,7 +17,14 @@ degrees from your real location.
 -->
 <a-scene vr-mode-ui='enabled: false' arjs='sourceType: webcam; videoTexture: true; debugUIEnabled: false' renderer='antialias: true; alpha: true'>
 	<a-camera gps-new-camera='gpsMinDistance: 5' camera='far: 50'></a-camera>
+	<!--  cube behind cube --->
 	<a-box color="red" gps-new-entity-place="latitude: 32.3094890; longitude: -90.8581832" depth="10" height="10"></a-box>
+
+	<!--  cube at walkway --->
+	<a-box color="yellow" gps-new-entity-place="latitude: 32.309737; longitude: -90.857580" depth="10" height="10"></a-box>
+
+	<!--  cube outside C --->
+	<a-box color="blue" gps-new-entity-place="latitude: 32.310055; longitude: -90.856669" depth="10" height="10"></a-box>
 </a-scene>
 	
 </body>
