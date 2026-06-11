@@ -1,0 +1,15 @@
+# prep
+
+run following command to remove predictive text:
+
+Set-PSReadLineOption -PredictionSource None
+
+
+run following command to find dir path:
+
+function prompt {"PS > "}
+
+
+Hide single file/folder
+
+Set-ItemProperty -Path "C:\path\to\your\file.txt" -Name Attributes -Value Hidden

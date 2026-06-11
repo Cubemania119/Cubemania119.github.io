@@ -1,0 +1,441 @@
+This is actually a great use case for an escape room because command-line navigation naturally creates a sequence of clues.
+
+My suggestion: don't make it a "hack into a computer" scenario. High schoolers often interpret that as "real hacking = breaking into systems." Instead, frame it as **digital forensics**:
+
+> A school district's network administrator left unexpectedly, and a critical server needs maintenance before a statewide exam begins. The admin left clues on their workstation. Your incident response team has 40 minutes to find the server's IP address and recovery code before the system goes offline.
+
+That gives you a realistic investigation storyline without teaching offensive actions.
+
+---
+
+# Design Goals
+
+By the end, students should have used:
+
+* `pwd`
+* `ls`
+* `cd`
+* `cat`
+* `find`
+* `grep` (or PowerShell equivalent)
+* tab completion
+* relative vs absolute paths
+* reading `.txt`, `.csv`, `.md`
+* basic file filtering
+
+They should feel:
+
+> "The command line is just navigating folders and reading files."
+
+---
+
+# Overall Flow (35-40 minutes)
+
+## Mission Brief
+
+Start at:
+
+```powershell
+PS C:\Investigation>
+```
+
+Tell them:
+
+> We need to locate:
+>
+> 1. The backup server IP address
+> 2. The recovery code
+>
+> Both are hidden somewhere in this filesystem.
+
+---
+
+# Directory Structure
+
+```text
+Investigation
+│
+├── README.md
+├── staff
+│   ├── notes.txt
+│   └── schedules.csv
+│
+├── logs
+│   ├── access.log
+│   ├── old
+│   │   └── archive.txt
+│   └── suspicious.log
+│
+├── servers
+│   ├── inventory.csv
+│   ├── retired
+│   │   └── old_servers.csv
+│   └── backup
+│       └── clue.txt
+│
+└── recovery
+    ├── draft.txt
+    ├── final
+    │   └── code.txt
+    └── decoys
+        ├── fake1.txt
+        ├── fake2.txt
+        └── fake3.txt
+```
+
+---
+
+# Stage 1: Learn Navigation
+
+Students begin in root.
+
+Ask:
+
+> What should we do first?
+
+Hopefully someone says:
+
+```bash
+ls
+```
+
+(or alias in PowerShell)
+
+They discover:
+
+```text
+README.md
+staff
+logs
+servers
+recovery
+```
+
+Then:
+
+```bash
+cat README.md
+```
+
+Contents:
+
+```markdown
+# Incident Response
+
+The backup server information was last updated by the systems team.
+
+Look for the server inventory.
+```
+
+---
+
+# Stage 2: Find the Server Inventory
+
+Students navigate:
+
+```bash
+cd servers
+ls
+```
+
+See:
+
+```text
+inventory.csv
+retired
+backup
+```
+
+Open:
+
+```bash
+cat inventory.csv
+```
+
+```csv
+Server,Role,Status
+WEB-01,Website,Online
+MAIL-01,Email,Online
+BACKUP-01,Backup,Unknown
+```
+
+No IP.
+
+At bottom add clue:
+
+```csv
+NOTE,See backup/clue.txt,
+```
+
+Students:
+
+```bash
+cd backup
+cat clue.txt
+```
+
+Contents:
+
+```text
+The inventory is incomplete.
+
+Search the logs for BACKUP-01.
+```
+
+---
+
+# Stage 3: Search Logs
+
+Students go to logs.
+
+```bash
+cd ../../logs
+ls
+```
+
+Files:
+
+```text
+access.log
+suspicious.log
+old
+```
+
+You want them to discover searching.
+
+They may try:
+
+```bash
+cat access.log
+```
+
+Make it huge and annoying.
+
+Someone eventually suggests:
+
+```bash
+grep BACKUP access.log
+```
+
+or
+
+```powershell
+Select-String BACKUP access.log
+```
+
+Result:
+
+```text
+No matches found.
+```
+
+Try:
+
+```bash
+grep BACKUP suspicious.log
+```
+
+Result:
+
+```text
+BACKUP-01 connected from 10.42.8.17
+```
+
+First objective complete.
+
+---
+
+# Stage 4: Find Recovery Code
+
+Now they know IP:
+
+```text
+10.42.8.17
+```
+
+But they still need recovery code.
+
+At bottom of suspicious.log:
+
+```text
+Recovery notes stored in recovery directory.
+```
+
+---
+
+# Stage 5: Directory Traversal Challenge
+
+Go:
+
+```bash
+cd ../recovery
+ls
+```
+
+See:
+
+```text
+draft.txt
+final
+decoys
+```
+
+Read draft:
+
+```bash
+cat draft.txt
+```
+
+```text
+Old recovery code discarded.
+See final folder.
+```
+
+Students:
+
+```bash
+cd final
+ls
+```
+
+See:
+
+```text
+code.txt
+```
+
+But make it not immediately useful.
+
+```text
+Recovery code has been split.
+
+Find the employee whose favorite number is 7.
+```
+
+---
+
+# Stage 6: CSV Investigation
+
+Students return to staff.
+
+```bash
+cd ../../staff
+cat schedules.csv
+```
+
+```csv
+Name,Department,FavoriteNumber
+Alice,IT,3
+Bob,Network,7
+Chris,Security,12
+```
+
+Now:
+
+```bash
+cat notes.txt
+```
+
+Contains:
+
+```text
+Bob always stores important information in archive.txt
+```
+
+---
+
+# Stage 7: Final Search
+
+Students navigate:
+
+```bash
+cd ../logs/old
+cat archive.txt
+```
+
+Contents:
+
+```text
+Recovery Code: BLUE-FALCON-2718
+```
+
+Mission complete.
+
+---
+
+# Add Escape-Room Flavor
+
+Use a timer.
+
+Display:
+
+```text
+SYSTEM STATUS
+
+Backup Server Offline In:
+
+39:58
+```
+
+and periodically reduce it.
+
+Every clue should feel like:
+
+> "We're getting closer."
+
+instead of
+
+> "Open random files."
+
+---
+
+# Optional Twist (My Favorite)
+
+Instead of telling them exactly where things are, make them discover `find`.
+
+Hide the final code file somewhere deep:
+
+```bash
+find . -name code.txt
+```
+
+When they discover that command, they'll feel like wizards.
+
+For example:
+
+```text
+recovery
+ └── archived
+      └── old
+           └── final
+                └── code.txt
+```
+
+Most students have an "aha!" moment when they realize they can search the filesystem instead of manually traversing every folder.
+
+---
+
+# Commands Covered
+
+By the end they will have naturally used:
+
+```bash
+pwd
+ls
+cd
+cat
+find
+grep
+```
+
+and learned:
+
+* folder navigation
+* relative paths
+* reading text files
+* reading CSVs
+* searching file contents
+* searching for files
+* thinking like an investigator
+
+Which is essentially the first 80% of practical command-line digital forensics, wrapped in a fun challenge.

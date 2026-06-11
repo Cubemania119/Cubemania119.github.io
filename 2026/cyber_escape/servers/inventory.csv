@@ -1,0 +1,5 @@
+Server,Role,Status
+WEB-01,Website,Online
+MAIL-01,Email,Online
+BA-01,Backup,Unknown
+NOTE,See backup/clue.txt,NULL
