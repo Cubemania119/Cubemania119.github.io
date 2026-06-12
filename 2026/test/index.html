@@ -1,65 +1,214 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title>Location-Based AR</title>
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://unpkg.com/aframe-look-at-component@0.8.0/dist/aframe-look-at-component.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>AR Experience</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { overflow: hidden; background: #000; }
+
+      #ui-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0;
+        z-index: 9999;
+        pointer-events: none;
+      }
+
+      #status-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        background: rgba(0,0,0,0.55);
+        font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+        font-size: 12px;
+        color: #ccc;
+        backdrop-filter: blur(4px);
+      }
+
+      #status-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: #888;
+        flex-shrink: 0;
+        transition: background 0.4s;
+      }
+      #status-dot.locating  { background: #f59e0b; animation: pulse 1.2s infinite; }
+      #status-dot.nearby    { background: #22c55e; }
+      #status-dot.far       { background: #ef4444; }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50%       { opacity: 0.3; }
+      }
+
+      #status-text { flex: 1; }
+      #distance-text { color: #888; }
+
+      #permission-screen {
+        position: fixed;
+        inset: 0;
+        background: #000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        z-index: 99999;
+        padding: 32px;
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        color: #fff;
+        text-align: center;
+      }
+      #permission-screen h1 { font-size: 22px; font-weight: 600; }
+      #permission-screen p  { font-size: 14px; color: #aaa; line-height: 1.6; max-width: 300px; }
+      #permission-screen button {
+        padding: 12px 28px;
+        border-radius: 8px;
+        border: none;
+        background: #ef4444;
+        color: #fff;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      #permission-screen button:active { opacity: 0.8; }
+    </style>
+
+    <!-- A-Frame -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.5.0/aframe.min.js"></script>
+    <!-- AR.js with location-based support -->
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
-</head>
-<body style="margin: 0; overflow: hidden;">
-    <a-scene
-        vr-mode-ui="enabled: false"
-        embedded
-        arjs="sourceType: webcam; debugUIEnabled: false;">
-        <a-text
-            value="Target Located!"
-            look-at="[gps-camera]"
-            scale="15 15 15"
-            gps-entity-place="latitude: 32.309557; longitude: -90.858122;">
-        </a-text>
-        <a-box
-            color="red"
-            depth="2"
-            height="2"
-            width="2"
-            look-at="[gps-camera]"
-            gps-entity-place="latitude: 32.350938; longitude: -90.883813;">
-        </a-box>
-        <a-box
-            color="blue"
-            depth="2"
-            height="2"
-            width="2"
-            look-at="[gps-camera]"
-            gps-entity-place="latitude: 32.3528204; longitude: -90.8826774;">
-        </a-box>
-        <a-box
-            color="yellow"
-            depth="2"
-            height="2"
-            width="2"
-            look-at="[gps-camera]"
-            gps-entity-place="latitude: 32.351563; longitude: -90.881812;">
-        </a-box>
-        <a-box
-            color="green"
-            depth="2"
-            height="2"
-            width="2"
-            look-at="[gps-camera]"
-            gps-entity-place="latitude: 32.3643288; longitude: -90.8599028;">
-        </a-box>
-        <a-box
-            color="red"
-            depth="2"
-            height="2"
-            width="2"
-            look-at="[gps-camera]"
-            gps-entity-place="latitude: 32.329495833628684; longitude: -90.87841851486634;">
-        </a-box>
-        <a-camera gps-camera="maxDistance: 100" rotation-reader></a-camera>
-    </a-scene>
-</body>
+    <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
+  </head>
+  <body>
+
+    <!-- Permission / intro screen shown before AR starts -->
+    <div id="permission-screen">
+      <h1>AR Experience</h1>
+      <p>This page needs access to your <strong>camera</strong> and <strong>location</strong> to show AR content nearby.</p>
+      <button id="start-btn">Allow &amp; Start</button>
+    </div>
+
+    <!-- Status bar (hidden until AR starts) -->
+    <div id="ui-overlay" style="display:none">
+      <div id="status-bar">
+        <div id="status-dot" class="locating"></div>
+        <span id="status-text">Acquiring GPS…</span>
+        <span id="distance-text"></span>
+      </div>
+    </div>
+
+    <!-- AR Scene (built dynamically after permission grant) -->
+    <div id="ar-container"></div>
+
+    <script>
+      // ── Config ────────────────────────────────────────────────────────────────
+      const TARGET_LAT  =  32.309600;
+      const TARGET_LNG  = -90.858149;
+      const MAX_DIST_M  =  3.048;          // 10 feet in metres
+      const CUBE_SIZE   =  0.4;            // metres — visible scale
+      const CUBE_COLOR  = '#e53935';       // red
+
+      // ── Haversine distance (metres) ───────────────────────────────────────────
+      function haversine(lat1, lng1, lat2, lng2) {
+        const R   = 6371000;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const a   = Math.sin(dLat/2)**2
+                  + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180)
+                  * Math.sin(dLng/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      }
+
+      // ── UI refs ───────────────────────────────────────────────────────────────
+      const permScreen   = document.getElementById('permission-screen');
+      const uiOverlay    = document.getElementById('ui-overlay');
+      const statusDot    = document.getElementById('status-dot');
+      const statusText   = document.getElementById('status-text');
+      const distanceText = document.getElementById('distance-text');
+
+      function setStatus(state, text, dist) {
+        statusDot.className = '';
+        statusDot.classList.add(state);          // locating | nearby | far
+        statusText.textContent  = text;
+        distanceText.textContent = dist != null
+          ? `${dist.toFixed(1)} m away`
+          : '';
+      }
+
+      // ── Build the A-Frame scene ───────────────────────────────────────────────
+      function buildScene() {
+        const container = document.getElementById('ar-container');
+        container.innerHTML = `
+          <a-scene
+            vr-mode-ui="enabled: false"
+            arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false"
+            renderer="antialias: true; alpha: true; logarithmicDepthBuffer: true;"
+            embedded
+          >
+            <a-camera
+              gps-new-camera="minDistance: 1;"
+            ></a-camera>
+
+            <a-box
+              id="target-cube"
+              gps-new-entity-place="latitude: ${TARGET_LAT}; longitude: ${TARGET_LNG};"
+              material="color: ${CUBE_COLOR}; opacity: 0.92; roughness: 0.4; metalness: 0.2;"
+              scale="${CUBE_SIZE} ${CUBE_SIZE} ${CUBE_SIZE}"
+              position="0 0.5 0"
+              rotation="0 45 0"
+              animation="property: rotation; to: 0 405 0; loop: true; dur: 4000; easing: linear"
+              visible="false"
+            ></a-box>
+          </a-scene>
+        `;
+      }
+
+      // ── GPS watch loop ────────────────────────────────────────────────────────
+      function startWatchingGPS() {
+        if (!navigator.geolocation) {
+          setStatus('far', 'GPS not supported on this device', null);
+          return;
+        }
+
+        setStatus('locating', 'Acquiring GPS…', null);
+
+        navigator.geolocation.watchPosition(
+          (pos) => {
+            const { latitude, longitude, accuracy } = pos.coords;
+            const dist = haversine(latitude, longitude, TARGET_LAT, TARGET_LNG);
+            const cube = document.getElementById('target-cube');
+
+            if (dist <= MAX_DIST_M) {
+              setStatus('nearby', 'Object nearby', dist);
+              if (cube) cube.setAttribute('visible', 'true');
+            } else {
+              const distStr = dist < 1000
+                ? `${dist.toFixed(0)} m`
+                : `${(dist/1000).toFixed(2)} km`;
+              setStatus('far', `Object not in range`, dist);
+              if (cube) cube.setAttribute('visible', 'false');
+            }
+          },
+          (err) => {
+            setStatus('locating', `GPS error: ${err.message}`, null);
+          },
+          { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+        );
+      }
+
+      // ── Start button ──────────────────────────────────────────────────────────
+      document.getElementById('start-btn').addEventListener('click', () => {
+        permScreen.style.display = 'none';
+        uiOverlay.style.display  = 'block';
+        buildScene();
+
+        // Small delay lets the scene initialise before GPS kicks in
+        setTimeout(startWatchingGPS, 1200);
+      });
+    </script>
+
+  </body>
 </html>
