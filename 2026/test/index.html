@@ -8,154 +8,365 @@
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { overflow: hidden; background: #000; }
 
+      /* ── UI overlay ── */
       #ui-overlay {
         position: fixed;
         top: 0; left: 0; right: 0;
         z-index: 9999;
         pointer-events: none;
+        display: none;
       }
 
       #status-bar {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 10px 14px;
-        background: rgba(0,0,0,0.55);
+        gap: 10px;
+        padding: 11px 16px;
+        background: rgba(0,0,0,0.6);
         font-family: ui-monospace, 'SF Mono', Consolas, monospace;
         font-size: 12px;
         color: #ccc;
-        backdrop-filter: blur(4px);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
       }
 
       #status-dot {
         width: 8px; height: 8px;
         border-radius: 50%;
-        background: #888;
+        background: #555;
         flex-shrink: 0;
-        transition: background 0.4s;
+        transition: background 0.5s;
       }
-      #status-dot.locating  { background: #f59e0b; animation: pulse 1.2s infinite; }
-      #status-dot.nearby    { background: #22c55e; }
-      #status-dot.far       { background: #ef4444; }
+      #status-dot.locating { background: #f59e0b; animation: pulse 1.2s infinite; }
+      #status-dot.nearby   { background: #22c55e; }
+      #status-dot.far      { background: #ef4444; }
 
       @keyframes pulse {
         0%, 100% { opacity: 1; }
-        50%       { opacity: 0.3; }
+        50%       { opacity: 0.25; }
       }
 
-      #status-text { flex: 1; }
-      #distance-text { color: #888; }
+      #status-text  { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #distance-text { color: #888; white-space: nowrap; }
 
+      /* accuracy warning banner */
+      #accuracy-warn {
+        display: none;
+        padding: 6px 16px;
+        background: rgba(245,158,11,0.18);
+        border-top: 1px solid rgba(245,158,11,0.35);
+        font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+        font-size: 11px;
+        color: #fcd34d;
+        text-align: center;
+      }
+
+      /* compass ring */
+      #compass-wrap {
+        position: fixed;
+        bottom: 36px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 9999;
+        pointer-events: none;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+      #compass-label {
+        font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+        font-size: 11px;
+        color: #aaa;
+        letter-spacing: 0.08em;
+        text-shadow: 0 1px 4px #000;
+      }
+      #compass-ring {
+        width: 64px; height: 64px;
+        border-radius: 50%;
+        background: rgba(0,0,0,0.52);
+        border: 1.5px solid rgba(255,255,255,0.18);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+      }
+      #compass-arrow {
+        width: 0; height: 0;
+        border-left: 6px solid transparent;
+        border-right: 6px solid transparent;
+        border-bottom: 22px solid #ef4444;
+        transform-origin: 50% 100%;
+        position: absolute;
+        bottom: 50%;
+        left: calc(50% - 6px);
+        transition: transform 0.6s ease;
+        filter: drop-shadow(0 0 4px rgba(239,68,68,0.7));
+      }
+
+      /* ── Permission screen ── */
       #permission-screen {
         position: fixed;
         inset: 0;
-        background: #000;
+        background: #0a0a0a;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 20px;
+        gap: 22px;
         z-index: 99999;
-        padding: 32px;
+        padding: 40px 32px;
         font-family: ui-sans-serif, system-ui, sans-serif;
         color: #fff;
         text-align: center;
       }
-      #permission-screen h1 { font-size: 22px; font-weight: 600; }
-      #permission-screen p  { font-size: 14px; color: #aaa; line-height: 1.6; max-width: 300px; }
-      #permission-screen button {
-        padding: 12px 28px;
-        border-radius: 8px;
+      #permission-screen .icon {
+        font-size: 48px;
+        line-height: 1;
+      }
+      #permission-screen h1 {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      #permission-screen p {
+        font-size: 14px;
+        color: #888;
+        line-height: 1.7;
+        max-width: 280px;
+      }
+      #permission-screen .perms {
+        display: flex;
+        gap: 24px;
+        color: #aaa;
+        font-size: 13px;
+      }
+      #permission-screen .perm-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+      }
+      #permission-screen .perm-icon { font-size: 24px; }
+      #start-btn {
+        margin-top: 4px;
+        padding: 14px 36px;
+        border-radius: 100px;
         border: none;
         background: #ef4444;
         color: #fff;
         font-size: 15px;
         font-weight: 600;
         cursor: pointer;
+        letter-spacing: 0.01em;
+        box-shadow: 0 0 24px rgba(239,68,68,0.35);
+        transition: transform 0.15s, box-shadow 0.15s;
       }
-      #permission-screen button:active { opacity: 0.8; }
+      #start-btn:active {
+        transform: scale(0.96);
+        box-shadow: 0 0 12px rgba(239,68,68,0.2);
+      }
+      #permission-screen .fine-print {
+        font-size: 11px;
+        color: #444;
+        max-width: 260px;
+        line-height: 1.6;
+      }
     </style>
 
     <!-- A-Frame -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aframe/1.5.0/aframe.min.js"></script>
-    <!-- AR.js with location-based support -->
+    <!-- AR.js location-based -->
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js"></script>
   </head>
   <body>
 
-    <!-- Permission / intro screen shown before AR starts -->
+    <!-- ── Permission / intro screen ── -->
     <div id="permission-screen">
+      <div class="icon">📍</div>
       <h1>AR Experience</h1>
-      <p>This page needs access to your <strong>camera</strong> and <strong>location</strong> to show AR content nearby.</p>
+      <p>Point your camera around the world to discover hidden objects nearby.</p>
+
+      <div class="perms">
+        <div class="perm-item">
+          <span class="perm-icon">📷</span>
+          <span>Camera</span>
+        </div>
+        <div class="perm-item">
+          <span class="perm-icon">🌐</span>
+          <span>Location</span>
+        </div>
+      </div>
+
       <button id="start-btn">Allow &amp; Start</button>
+      <p class="fine-print">Permission prompts will appear after tapping. Location data never leaves your device.</p>
     </div>
 
-    <!-- Status bar (hidden until AR starts) -->
-    <div id="ui-overlay" style="display:none">
+    <!-- ── Status bar ── -->
+    <div id="ui-overlay">
       <div id="status-bar">
         <div id="status-dot" class="locating"></div>
         <span id="status-text">Acquiring GPS…</span>
         <span id="distance-text"></span>
       </div>
+      <div id="accuracy-warn">⚠ GPS accuracy is low — results may vary</div>
     </div>
 
-    <!-- AR Scene (built dynamically after permission grant) -->
+    <!-- ── Compass (shown when out of range) ── -->
+    <div id="compass-wrap">
+      <div id="compass-ring">
+        <div id="compass-arrow"></div>
+      </div>
+      <span id="compass-label">MOVE THIS WAY</span>
+    </div>
+
+    <!-- ── AR scene injected here ── -->
     <div id="ar-container"></div>
 
     <script>
-      // ── Config ────────────────────────────────────────────────────────────────
-      const TARGET_LAT  =  32.309600;
-      const TARGET_LNG  = -90.858149;
-      const MAX_DIST_M  =  3.048;          // 10 feet in metres
-      const CUBE_SIZE   =  0.4;            // metres — visible scale
-      const CUBE_COLOR  = '#e53935';       // red
+      // ═══════════════════════════════════════════════════════
+      //  CONFIG
+      // ═══════════════════════════════════════════════════════
+      const TARGET_LAT   =  32.309600;
+      const TARGET_LNG   = -90.858149;
 
-      // ── Haversine distance (metres) ───────────────────────────────────────────
+      const SHOW_DIST_M  =  4.0;   // show cube when within this distance
+      const HIDE_DIST_M  =  5.0;   // hide cube only after passing this (hysteresis)
+      const WARN_ACC_M   = 10.0;   // show accuracy warning if GPS ≥ this
+
+      const CUBE_SIZE    =  0.4;   // metres
+      const CUBE_COLOR   = '#e53935';
+
+      const SMOOTH_N     =  5;     // rolling-median window size
+
+      // ═══════════════════════════════════════════════════════
+      //  HAVERSINE  (returns metres)
+      // ═══════════════════════════════════════════════════════
       function haversine(lat1, lng1, lat2, lng2) {
-        const R   = 6371000;
+        const R    = 6371000;
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLng = (lng2 - lng1) * Math.PI / 180;
-        const a   = Math.sin(dLat/2)**2
-                  + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180)
-                  * Math.sin(dLng/2)**2;
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const a    = Math.sin(dLat / 2) ** 2
+                   + Math.cos(lat1 * Math.PI / 180)
+                   * Math.cos(lat2 * Math.PI / 180)
+                   * Math.sin(dLng / 2) ** 2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       }
 
-      // ── UI refs ───────────────────────────────────────────────────────────────
+      // ═══════════════════════════════════════════════════════
+      //  BEARING  (degrees, 0 = north, clockwise)
+      // ═══════════════════════════════════════════════════════
+      function bearing(lat1, lng1, lat2, lng2) {
+        const dLng = (lng2 - lng1) * Math.PI / 180;
+        const φ1   = lat1 * Math.PI / 180;
+        const φ2   = lat2 * Math.PI / 180;
+        const y    = Math.sin(dLng) * Math.cos(φ2);
+        const x    = Math.cos(φ1) * Math.sin(φ2)
+                   - Math.sin(φ1) * Math.cos(φ2) * Math.cos(dLng);
+        return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
+      }
+
+      // ═══════════════════════════════════════════════════════
+      //  ROLLING MEDIAN SMOOTHER
+      // ═══════════════════════════════════════════════════════
+      const distBuffer = [];
+
+      function smoothedDistance(newDist) {
+        distBuffer.push(newDist);
+        if (distBuffer.length > SMOOTH_N) distBuffer.shift();
+        const sorted = [...distBuffer].sort((a, b) => a - b);
+        return sorted[Math.floor(sorted.length / 2)];
+      }
+
+      // ═══════════════════════════════════════════════════════
+      //  FORMAT DISTANCE  (feet when close, metres otherwise)
+      // ═══════════════════════════════════════════════════════
+      function fmtDist(m) {
+        if (m < 30) {
+          const ft = m * 3.28084;
+          return `${ft.toFixed(0)} ft away`;
+        }
+        if (m < 1000) return `${m.toFixed(0)} m away`;
+        return `${(m / 1000).toFixed(2)} km away`;
+      }
+
+      // ═══════════════════════════════════════════════════════
+      //  UI ELEMENTS
+      // ═══════════════════════════════════════════════════════
       const permScreen   = document.getElementById('permission-screen');
       const uiOverlay    = document.getElementById('ui-overlay');
       const statusDot    = document.getElementById('status-dot');
       const statusText   = document.getElementById('status-text');
       const distanceText = document.getElementById('distance-text');
+      const accuracyWarn = document.getElementById('accuracy-warn');
+      const compassWrap  = document.getElementById('compass-wrap');
+      const compassArrow = document.getElementById('compass-arrow');
 
       function setStatus(state, text, dist) {
         statusDot.className = '';
-        statusDot.classList.add(state);          // locating | nearby | far
-        statusText.textContent  = text;
-        distanceText.textContent = dist != null
-          ? `${dist.toFixed(1)} m away`
-          : '';
+        statusDot.classList.add(state);
+        statusText.textContent   = text;
+        distanceText.textContent = dist != null ? fmtDist(dist) : '';
       }
 
-      // ── Build the A-Frame scene ───────────────────────────────────────────────
+      // ═══════════════════════════════════════════════════════
+      //  CUBE FADE  (CSS opacity on the A-Frame entity)
+      // ═══════════════════════════════════════════════════════
+      let cubeVisible = false;
+
+      function setCubeOpacity(targetOpacity, durationMs) {
+        const cube = document.getElementById('target-cube');
+        if (!cube) return;
+        // Use A-Frame animation component for smooth fade
+        cube.setAttribute('animation__fade', [
+          `property: material.opacity`,
+          `to: ${targetOpacity}`,
+          `dur: ${durationMs}`,
+          `easing: easeInOutQuad`
+        ].join('; '));
+      }
+
+      function showCube() {
+        if (cubeVisible) return;
+        cubeVisible = true;
+        const cube = document.getElementById('target-cube');
+        if (cube) {
+          cube.setAttribute('visible', 'true');
+          setCubeOpacity(0.92, 600);
+        }
+        compassWrap.style.display = 'none';
+      }
+
+      function hideCube() {
+        if (!cubeVisible) return;
+        cubeVisible = false;
+        setCubeOpacity(0, 400);
+        setTimeout(() => {
+          const cube = document.getElementById('target-cube');
+          if (cube && !cubeVisible) cube.setAttribute('visible', 'false');
+        }, 420);
+      }
+
+      // ═══════════════════════════════════════════════════════
+      //  BUILD A-FRAME SCENE
+      // ═══════════════════════════════════════════════════════
       function buildScene() {
-        const container = document.getElementById('ar-container');
-        container.innerHTML = `
+        document.getElementById('ar-container').innerHTML = `
           <a-scene
             vr-mode-ui="enabled: false"
             arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false"
             renderer="antialias: true; alpha: true; logarithmicDepthBuffer: true;"
             embedded
           >
-            <a-camera
-              gps-new-camera="minDistance: 1;"
-            ></a-camera>
+            <a-camera gps-new-camera="minDistance: 1;"></a-camera>
 
             <a-box
               id="target-cube"
               gps-new-entity-place="latitude: ${TARGET_LAT}; longitude: ${TARGET_LNG};"
-              material="color: ${CUBE_COLOR}; opacity: 0.92; roughness: 0.4; metalness: 0.2;"
+              material="color: ${CUBE_COLOR}; opacity: 0; roughness: 0.35; metalness: 0.25; transparent: true;"
               scale="${CUBE_SIZE} ${CUBE_SIZE} ${CUBE_SIZE}"
               position="0 0.5 0"
               rotation="0 45 0"
@@ -166,10 +377,15 @@
         `;
       }
 
-      // ── GPS watch loop ────────────────────────────────────────────────────────
+      // ═══════════════════════════════════════════════════════
+      //  GPS WATCH
+      // ═══════════════════════════════════════════════════════
+      // Device compass heading (if available)
+      let deviceHeading = null;
+
       function startWatchingGPS() {
         if (!navigator.geolocation) {
-          setStatus('far', 'GPS not supported on this device', null);
+          setStatus('far', 'GPS not available on this device', null);
           return;
         }
 
@@ -178,37 +394,82 @@
         navigator.geolocation.watchPosition(
           (pos) => {
             const { latitude, longitude, accuracy } = pos.coords;
-            const dist = haversine(latitude, longitude, TARGET_LAT, TARGET_LNG);
-            const cube = document.getElementById('target-cube');
+            const rawDist = haversine(latitude, longitude, TARGET_LAT, TARGET_LNG);
+            const dist    = smoothedDistance(rawDist);
 
-            if (dist <= MAX_DIST_M) {
-              setStatus('nearby', 'Object nearby', dist);
-              if (cube) cube.setAttribute('visible', 'true');
-            } else {
-              const distStr = dist < 1000
-                ? `${dist.toFixed(0)} m`
-                : `${(dist/1000).toFixed(2)} km`;
-              setStatus('far', `Object not in range`, dist);
-              if (cube) cube.setAttribute('visible', 'false');
+            // Accuracy warning
+            accuracyWarn.style.display = (accuracy >= WARN_ACC_M) ? 'block' : 'none';
+
+            // Compass bearing toward target
+            const bear = bearing(latitude, longitude, TARGET_LAT, TARGET_LNG);
+
+            if (dist <= SHOW_DIST_M) {
+              setStatus('nearby', 'Object detected', dist);
+              showCube();
+              compassWrap.style.display = 'none';
+            } else if (dist > HIDE_DIST_M || !cubeVisible) {
+              setStatus('far', 'Searching…', dist);
+              hideCube();
+
+              // Show compass pointing toward target
+              compassWrap.style.display = 'flex';
+              // If we have device orientation, rotate arrow relative to heading
+              const relBear = deviceHeading != null
+                ? (bear - deviceHeading + 360) % 360
+                : bear;
+              compassArrow.style.transform = `rotate(${relBear}deg)`;
             }
           },
           (err) => {
-            setStatus('locating', `GPS error: ${err.message}`, null);
+            const msgs = {
+              1: 'Location permission denied',
+              2: 'GPS signal unavailable',
+              3: 'GPS request timed out'
+            };
+            setStatus('locating', msgs[err.code] || `GPS error (${err.code})`, null);
           },
-          { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+          { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 }
         );
       }
 
-      // ── Start button ──────────────────────────────────────────────────────────
+      // ── Device orientation for relative compass ──────────────────────────────
+      function startOrientation() {
+        // iOS 13+ requires permission
+        if (typeof DeviceOrientationEvent !== 'undefined'
+            && typeof DeviceOrientationEvent.requestPermission === 'function') {
+          DeviceOrientationEvent.requestPermission()
+            .then(state => { if (state === 'granted') listenOrientation(); })
+            .catch(() => {});
+        } else {
+          listenOrientation();
+        }
+      }
+
+      function listenOrientation() {
+        window.addEventListener('deviceorientationabsolute', onOrientation, true);
+        window.addEventListener('deviceorientation', onOrientation, true);
+      }
+
+      function onOrientation(e) {
+        // alpha = compass heading (0 = north) on most devices
+        if (e.absolute && e.alpha != null) {
+          deviceHeading = e.alpha;
+        } else if (e.webkitCompassHeading != null) {
+          // Safari fallback
+          deviceHeading = e.webkitCompassHeading;
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════
+      //  START BUTTON
+      // ═══════════════════════════════════════════════════════
       document.getElementById('start-btn').addEventListener('click', () => {
         permScreen.style.display = 'none';
         uiOverlay.style.display  = 'block';
         buildScene();
-
-        // Small delay lets the scene initialise before GPS kicks in
+        startOrientation();
         setTimeout(startWatchingGPS, 1200);
       });
     </script>
-
   </body>
 </html>
