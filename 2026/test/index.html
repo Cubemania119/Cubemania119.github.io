@@ -6,7 +6,28 @@
     <title>AR Experience</title>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { overflow: hidden; background: #000; }
+      html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+
+      /* AR container and scene must fill the full viewport */
+      #ar-container,
+      #ar-container a-scene {
+        position: fixed !important;
+        top: 0; left: 0;
+        width: 100% !important;
+        height: 100% !important;
+        z-index: 0;
+      }
+
+      /* AR.js injects a <video> and <canvas> — both must fill the screen */
+      #ar-container video,
+      #ar-container canvas {
+        position: fixed !important;
+        top: 0; left: 0;
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover;
+        z-index: 0;
+      }
 
       /* ── UI overlay ── */
       #ui-overlay {
@@ -230,7 +251,7 @@
       // ═══════════════════════════════════════════════════════
       //  CONFIG
       // ═══════════════════════════════════════════════════════
-      const TARGET_LAT   = 32.326129;
+      const TARGET_LAT   =  32.326129;
       const TARGET_LNG   = -90.876979;
 
       const SHOW_DIST_M  =  4.0;   // show cube when within this distance
@@ -359,7 +380,6 @@
             vr-mode-ui="enabled: false"
             arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false"
             renderer="antialias: true; alpha: true; logarithmicDepthBuffer: true;"
-            embedded
           >
             <a-camera gps-new-camera="minDistance: 1;"></a-camera>
 
