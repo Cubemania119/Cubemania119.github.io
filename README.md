@@ -1,3 +1,6 @@
-# unum
+# start
 
-Folders represent unum years.
+Folders represent years.
+Projects are seperated into years
+- UNUM
+- SAME
