@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TERMINAL // CIPHER v1.0</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
+
+    :root {
+      --green: #00ff41;
+      --green-dim: #00b32c;
+      --green-faint: #003b0f;
+      --bg: #000000;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--green);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 15px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 20px;
+      overflow-x: hidden;
+      cursor: text;
+    }
+
+    #terminal {
+      width: 100%;
+      max-width: 860px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #header {
+      border: 1px solid var(--green-dim);
+      border-bottom: none;
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--green-faint);
+      font-family: 'VT323', monospace;
+      font-size: 20px;
+      letter-spacing: 2px;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    #header .title { color: var(--green); }
+    #header .status { color: var(--green-dim); font-size: 16px; }
+
+    #output {
+      border: 1px solid var(--green-dim);
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      min-height: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .line {
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      animation: fadein 0.08s ease both;
+    }
+
+    .line.dim     { color: var(--green-dim); }
+    .line.bright  { color: var(--green); }
+    .line.warn    { color: #ffcc00; }
+    .line.error   { color: #ff3c3c; }
+    .line.success { color: #00ff41; font-family: 'VT323', monospace; font-size: 19px; letter-spacing: 1px; }
+    .line.spacer  { height: 8px; }
+    .line.sep     { color: var(--green-dim); }
+
+    @keyframes fadein { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+
+    #input-row {
+      border: 1px solid var(--green-dim);
+      border-top: none;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--green-faint);
+    }
+
+    #prompt-label {
+      color: var(--green);
+      white-space: nowrap;
+      font-family: 'VT323', monospace;
+      font-size: 20px;
+    }
+
+    #input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--green);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 15px;
+      caret-color: var(--green);
+    }
+
+    #input::placeholder { color: var(--green-dim); opacity: 0.5; }
+
+    #output::-webkit-scrollbar { width: 6px; }
+    #output::-webkit-scrollbar-track { background: var(--bg); }
+    #output::-webkit-scrollbar-thumb { background: var(--green-dim); border-radius: 3px; }
+  </style>
+</head>
+<body>
+<div id="terminal">
+  <div id="header">
+    <span class="title">▓▒░ CIPHER TERMINAL v1.0 ░▒▓</span>
+    <span class="status" id="clock">UPTIME: 00:00:00</span>
+  </div>
+  <div id="output"></div>
+  <div id="input-row">
+    <span id="prompt-label">INPUT&gt;</span>
+    <input id="input" type="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="enter access code" />
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  CODE CONFIG
+//
+//  Codes are Base64-encoded to avoid plain-text exposure in source.
+//  To encode a new code, run this in your browser console:
+//    btoa("your code here")
+//  Matching is case-insensitive and ignores spaces/punctuation.
+//
+//  Each entry: { code, responseLines[] }
+// ─────────────────────────────────────────────
+const CODES = [
+  {
+    code: "QVhCUg==",
+    responseLines: [
+      "──────────────────────────────────────────────",
+      "ACCESS GRANTED.  CODE VERIFIED.",
+      "──────────────────────────────────────────────",
+      "",
+      "Good work thus far, %$#^&&^.",
+      "You have unlocked a secret location.",
+      "If you would like extra points,",
+      "go to the following coordinates:",
+      "",
+      "32.3024375",
+      "-90.87113884",
+      "",
+      "take a photo with the sign",
+      "Same rules as the previous photos",
+      "",
+      "Good luck.",
+      "",
+      "",
+      "SAT: Agent_U",
+      "──────────────────────────────────────────────",
+    ],
+  },
+
+  // ── ADD MORE CODES BELOW ──────────────────────
+  // Run  btoa("your code")  in the browser console to get the encoded string,
+  // or just write  btoa("your code")  directly like above.
+  //
+  // {
+  //   code: btoa("silver key"),
+  //   responseLines: [
+  //     "ACCESS GRANTED.",
+  //     "Welcome to Site Bravo.",
+  //   ],
+  // },
+];
+
+// Shown for any unrecognized input
+const INVALID_RESPONSE = [
+  "──────────────────────────────────────────────",
+  "ACCESS DENIED.  CODE NOT RECOGNIZED.",
+  "──────────────────────────────────────────────",
+  "",
+  "This attempt has been logged.",
+  "──────────────────────────────────────────────",
+];
+
+// ─────────────────────────────────────────────
+//  NORMALIZE — strips case, spaces, punctuation
+// ─────────────────────────────────────────────
+function normalize(str) {
+  return str.toLowerCase().replace(/[\s\p{P}]/gu, '');
+}
+
+// Decode and normalize all codes once at startup
+const DECODED = CODES.map(entry => ({
+  ...entry,
+  normalized: normalize(atob(entry.code)),
+}));
+
+// ─────────────────────────────────────────────
+//  BOOT SEQUENCE
+// ─────────────────────────────────────────────
+const BOOT_LINES = [
+  { text: "CIPHER TERMINAL v1.0  //  CLASSIFIED",    cls: "bright" },
+  { text: "Initializing secure channel...",           cls: "dim" },
+  { text: "Channel established.  Encryption: AES-256", cls: "dim" },
+  { text: "Loading access registry...",               cls: "dim" },
+  { text: `${CODES.length} code(s) registered.  Access level: RESTRICTED`, cls: "dim" },
+  { text: "──────────────────────────────────────────────", cls: "sep" },
+  { text: "Enter your access code to proceed.",       cls: "" },
+  { text: "──────────────────────────────────────────────", cls: "sep" },
+];
+
+// ─────────────────────────────────────────────
+//  DOM HELPERS
+// ─────────────────────────────────────────────
+const output = document.getElementById('output');
+const input  = document.getElementById('input');
+
+function addLine(text, cls = '') {
+  const div = document.createElement('div');
+  div.className = 'line' + (cls ? ' ' + cls : '');
+  div.textContent = text;
+  output.appendChild(div);
+  output.scrollTop = output.scrollHeight;
+}
+
+function addSpacer() { addLine('', 'spacer'); }
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function boot() {
+  for (let i = 0; i < BOOT_LINES.length; i++) {
+    await delay(i === 0 ? 200 : 80);
+    addLine(BOOT_LINES[i].text, BOOT_LINES[i].cls);
+  }
+}
+
+// ─────────────────────────────────────────────
+//  SUBMIT LOGIC
+// ─────────────────────────────────────────────
+async function submit(raw) {
+  addSpacer();
+  addLine(`INPUT> ${raw}`, 'dim');
+  addSpacer();
+
+  // Processing animation
+  addLine("Verifying...  ░░░░░░░░░░░░░░░░░░░░", "dim");
+  await delay(300);
+  addLine("Verifying...  ████░░░░░░░░░░░░░░░░", "dim");
+  await delay(250);
+  addLine("Verifying...  ████████████░░░░░░░░", "dim");
+  await delay(250);
+  addLine("Verifying...  ████████████████████", "dim");
+  await delay(200);
+  addSpacer();
+
+  const attempt = normalize(raw);
+  const match = DECODED.find(entry => entry.normalized === attempt);
+
+  const lines = match ? match.responseLines : INVALID_RESPONSE;
+  const cls   = match ? "success" : "warn";
+
+  for (const line of lines) {
+    await delay(40);
+    if (line === "") addSpacer();
+    else addLine(line, cls);
+  }
+
+  addSpacer();
+}
+
+// ─────────────────────────────────────────────
+//  INPUT HANDLER
+// ─────────────────────────────────────────────
+input.addEventListener('keydown', async (e) => {
+  if (e.key === 'Enter') {
+    const val = input.value.trim();
+    input.value = '';
+    if (!val) return;
+    await submit(val);
+  }
+});
+
+document.body.addEventListener('click', () => input.focus());
+
+// ─────────────────────────────────────────────
+//  UPTIME CLOCK
+// ─────────────────────────────────────────────
+const clockEl = document.getElementById('clock');
+const startTime = Date.now();
+setInterval(() => {
+  const s = Math.floor((Date.now() - startTime) / 1000);
+  const h = String(Math.floor(s / 3600)).padStart(2,'0');
+  const m = String(Math.floor((s % 3600) / 60)).padStart(2,'0');
+  const sec = String(s % 60).padStart(2,'0');
+  clockEl.textContent = `UPTIME: ${h}:${m}:${sec}`;
+}, 1000);
+
+// ─────────────────────────────────────────────
+//  BOOT
+// ─────────────────────────────────────────────
+boot().then(() => input.focus());
+</script>
+</body>
+</html>
