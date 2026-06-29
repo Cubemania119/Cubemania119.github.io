@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>TERMINAL // CIPHER v1.0</title>
+  <title>TERMINAL // GEO-SCAN v2.3</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
 
@@ -39,6 +39,7 @@
       flex-direction: column;
     }
 
+    /* Header bar */
     #header {
       border: 1px solid var(--green-dim);
       border-bottom: none;
@@ -57,6 +58,7 @@
     #header .title { color: var(--green); }
     #header .status { color: var(--green-dim); font-size: 16px; }
 
+    /* Main output area */
     #output {
       border: 1px solid var(--green-dim);
       flex: 1;
@@ -72,19 +74,20 @@
       line-height: 1.6;
       white-space: pre-wrap;
       word-break: break-word;
-      animation: fadein 0.08s ease both;
     }
 
-    .line.dim     { color: var(--green-dim); }
-    .line.bright  { color: var(--green); }
-    .line.warn    { color: #ffcc00; }
-    .line.error   { color: #ff3c3c; }
-    .line.success { color: #00ff41; font-family: 'VT323', monospace; font-size: 19px; letter-spacing: 1px; }
-    .line.spacer  { height: 8px; }
-    .line.sep     { color: var(--green-dim); }
+    .line.dim    { color: var(--green-dim); }
+    .line.bright { color: var(--green); }
+    .line.warn   { color: #ffcc00; }
+    .line.error  { color: #ff3c3c; }
+    .line.success{ color: #00ff41; font-family: 'VT323', monospace; font-size: 19px; letter-spacing: 1px; }
+    .line.spacer { height: 8px; }
+    .line.sep    { color: var(--green-dim); }
 
-    @keyframes fadein { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+    @keyframes fadein { from{opacity:0;transform:translateY(2px)} to{opacity:1;transform:none} }
+    .line { animation: fadein 0.08s ease both; }
 
+    /* Input row */
     #input-row {
       border: 1px solid var(--green-dim);
       border-top: none;
@@ -115,6 +118,7 @@
 
     #input::placeholder { color: var(--green-dim); opacity: 0.5; }
 
+    /* Scrollbar */
     #output::-webkit-scrollbar { width: 6px; }
     #output::-webkit-scrollbar-track { background: var(--bg); }
     #output::-webkit-scrollbar-thumb { background: var(--green-dim); border-radius: 3px; }
@@ -123,101 +127,103 @@
 <body>
 <div id="terminal">
   <div id="header">
-    <span class="title">▓▒░ CIPHER TERMINAL v1.0 ░▒▓</span>
+    <span class="title">▓▒░ GEO-SCAN TERMINAL v2.3 ░▒▓</span>
     <span class="status" id="clock">UPTIME: 00:00:00</span>
   </div>
   <div id="output"></div>
   <div id="input-row">
-    <span id="prompt-label">INPUT&gt;</span>
-    <input id="input" type="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="enter access code" />
+    <span id="prompt-label">SCAN&gt;</span>
+    <input id="input" type="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="enter coordinates (lat, lon)" />
   </div>
 </div>
 
 <script>
 // ─────────────────────────────────────────────
-//  CODE CONFIG
+//  LOCATION CONFIG
 //
-//  Codes are Base64-encoded to avoid plain-text exposure in source.
-//  To encode a new code, run this in your browser console:
-//    btoa("your code here")
-//  Matching is case-insensitive and ignores spaces/punctuation.
+//  Coordinates are Base64-encoded to avoid plain-text exposure in source.
+//  To encode a new location, run this in your browser console:
+//    btoa(JSON.stringify({ la: LAT, lo: LON, r: RADIUS_MILES }))
+//  Paste the result as the `geo` string below.
 //
-//  Each entry: { code, responseLines[] }
+//  Each entry: { name, geo, hitLines[] }
 // ─────────────────────────────────────────────
-const CODES = [
+const LOCATIONS = [
   {
-    code: "QVhCUg==",
-    responseLines: [
+    name: "SITE ALPHA",
+    geo: "eyJsYSI6MzIuMzE3Nzg3NiwibG8iOi05MC44OTAzMTEzLCJyIjoxfQ==",
+    hitLines: [
       "──────────────────────────────────────────────",
-      "ACCESS GRANTED.  CODE VERIFIED.",
+      "SIGNAL LOCKED.  COORDINATES CONFIRMED.",
       "──────────────────────────────────────────────",
       "",
-      "Good work thus far, %$#^&&^.",
-      "You have unlocked a secret location.",
-      "If you would like extra points,",
-      "go to the following coordinates:",
+      "You are standing at the threshold.",
+      "The anomaly designated SITE ALPHA has been",
+      "active for longer than our records reach.",
       "",
-      "32.3024375",
-      "-90.87113884",
+      "Locals don't speak of what they see at the",
+      "treeline after midnight. Our field agents did.",
+      "They filed one report. We have not heard from",
+      "them since.",
       "",
-      "take a photo with the sign",
-      "Same rules as the previous photos",
+      "You were warned not to come here.",
+      "You came anyway.",
       "",
-      "Good luck.",
-      "",
-      "",
-      "SAT: Agent_U",
+      "We're watching.",
       "──────────────────────────────────────────────",
     ],
   },
 
-  // ── ADD MORE CODES BELOW ──────────────────────
-  // Run  btoa("your code")  in the browser console to get the encoded string,
-  // or just write  btoa("your code")  directly like above.
+  // ── ADD MORE LOCATIONS BELOW ──────────────────
+  // To generate a geo string, run in browser console:
+  //   btoa(JSON.stringify({ la: LAT, lo: LON, r: RADIUS_MILES }))
   //
   // {
-  //   code: btoa("silver key"),
-  //   responseLines: [
-  //     "ACCESS GRANTED.",
-  //     "Welcome to Site Bravo.",
+  //   name: "SITE BRAVO",
+  //   geo: "<paste encoded string here>",
+  //   hitLines: [
+  //     "SIGNAL ACQUIRED.",
+  //     "You have found SITE BRAVO.",
+  //     "Do not linger.",
   //   ],
   // },
 ];
 
-// Shown for any unrecognized input
-const INVALID_RESPONSE = [
+// Shown when coords don't match any location
+const MISS_RESPONSE = [
   "──────────────────────────────────────────────",
-  "ACCESS DENIED.  CODE NOT RECOGNIZED.",
+  "SCANNING...  NO SIGNAL DETECTED.",
   "──────────────────────────────────────────────",
   "",
-  "This attempt has been logged.",
+  "These coordinates fall outside all known",
+  "anomaly zones. Either the target has shifted,",
+  "or you are not where you need to be.",
+  "",
+  "Keep looking.",
   "──────────────────────────────────────────────",
 ];
 
 // ─────────────────────────────────────────────
-//  NORMALIZE — strips case, spaces, punctuation
+//  DECODE LOCATIONS AT RUNTIME
 // ─────────────────────────────────────────────
-function normalize(str) {
-  return str.toLowerCase().replace(/[\s\p{P}]/gu, '');
-}
-
-// Decode and normalize all codes once at startup
-const DECODED = CODES.map(entry => ({
-  ...entry,
-  normalized: normalize(atob(entry.code)),
-}));
+const DECODED = LOCATIONS.map(loc => {
+  const { la, lo, r } = JSON.parse(atob(loc.geo));
+  return { ...loc, lat: la, lon: lo, radiusMiles: r };
+});
 
 // ─────────────────────────────────────────────
 //  BOOT SEQUENCE
 // ─────────────────────────────────────────────
 const BOOT_LINES = [
-  { text: "CIPHER TERMINAL v1.0  //  CLASSIFIED",    cls: "bright" },
-  { text: "Initializing secure channel...",           cls: "dim" },
-  { text: "Channel established.  Encryption: AES-256", cls: "dim" },
-  { text: "Loading access registry...",               cls: "dim" },
-  { text: `${CODES.length} code(s) registered.  Access level: RESTRICTED`, cls: "dim" },
+  { text: "GEO-SCAN TERMINAL v2.3  //  CLASSIFIED", cls: "bright" },
+  { text: "Initializing satellite uplink...", cls: "dim" },
+  { text: "Uplink established.  Signal strength: ████████░░  84%", cls: "dim" },
+  { text: "Loading anomaly database...", cls: "dim" },
+  { text: `${LOCATIONS.length} site(s) indexed.  Access level: RESTRICTED`, cls: "dim" },
   { text: "──────────────────────────────────────────────", cls: "sep" },
-  { text: "Enter your access code to proceed.",       cls: "" },
+  { text: "Enter GPS coordinates to scan for anomalies.", cls: "" },
+  { text: "Format:  lat, lon   (decimal degrees)", cls: "dim" },
+  { text: "Example: 32.3177, -90.8903", cls: "dim" },
   { text: "──────────────────────────────────────────────", cls: "sep" },
 ];
 
@@ -236,7 +242,6 @@ function addLine(text, cls = '') {
 }
 
 function addSpacer() { addLine('', 'spacer'); }
-function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function boot() {
   for (let i = 0; i < BOOT_LINES.length; i++) {
@@ -245,35 +250,75 @@ async function boot() {
   }
 }
 
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
 // ─────────────────────────────────────────────
-//  SUBMIT LOGIC
+//  DISTANCE (Haversine)
 // ─────────────────────────────────────────────
-async function submit(raw) {
+function haversineMiles(lat1, lon1, lat2, lon2) {
+  const R = 3958.8;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+            Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ─────────────────────────────────────────────
+//  PARSE INPUT
+// ─────────────────────────────────────────────
+function parseCoords(raw) {
+  const parts = raw.trim().split(/[\s,]+/);
+  if (parts.length < 2) return null;
+  const lat = parseFloat(parts[0]);
+  const lon = parseFloat(parts[1]);
+  if (isNaN(lat) || isNaN(lon)) return null;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+  return { lat, lon };
+}
+
+// ─────────────────────────────────────────────
+//  SCAN LOGIC
+// ─────────────────────────────────────────────
+async function scan(raw) {
   addSpacer();
-  addLine(`INPUT> ${raw}`, 'dim');
+  addLine(`SCAN> ${raw}`, 'dim');
   addSpacer();
 
-  // Processing animation
-  addLine("Verifying...  ░░░░░░░░░░░░░░░░░░░░", "dim");
+  const coords = parseCoords(raw);
+  if (!coords) {
+    addLine("ERROR: Could not parse coordinates.", "error");
+    addLine("Expected format: lat, lon  (e.g. 32.3177, -90.8903)", "dim");
+    addSpacer();
+    return;
+  }
+
+  // Scanning animation
+  addLine("Scanning...  ░░░░░░░░░░░░░░░░░░░░", "dim");
   await delay(300);
-  addLine("Verifying...  ████░░░░░░░░░░░░░░░░", "dim");
+  addLine("Scanning...  ████░░░░░░░░░░░░░░░░", "dim");
   await delay(250);
-  addLine("Verifying...  ████████████░░░░░░░░", "dim");
+  addLine("Scanning...  ████████████░░░░░░░░", "dim");
   await delay(250);
-  addLine("Verifying...  ████████████████████", "dim");
+  addLine("Scanning...  ████████████████████", "dim");
   await delay(200);
   addSpacer();
 
-  const attempt = normalize(raw);
-  const match = DECODED.find(entry => entry.normalized === attempt);
+  // Check each decoded location
+  let hit = null;
+  for (const loc of DECODED) {
+    const dist = haversineMiles(coords.lat, coords.lon, loc.lat, loc.lon);
+    if (dist <= loc.radiusMiles) { hit = loc; break; }
+  }
 
-  const lines = match ? match.responseLines : INVALID_RESPONSE;
-  const cls   = match ? "success" : "warn";
+  const lines = hit ? hit.hitLines : MISS_RESPONSE;
+  const cls   = hit ? "success" : "warn";
 
   for (const line of lines) {
     await delay(40);
-    if (line === "") addSpacer();
-    else addLine(line, cls);
+    if (line === "") { addSpacer(); }
+    else { addLine(line, cls); }
   }
 
   addSpacer();
@@ -287,7 +332,7 @@ input.addEventListener('keydown', async (e) => {
     const val = input.value.trim();
     input.value = '';
     if (!val) return;
-    await submit(val);
+    await scan(val);
   }
 });
 
