@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TERMINAL // GEO-SCAN v2.3</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap');
+
+    :root {
+      --green: #00ff41;
+      --green-dim: #00b32c;
+      --green-faint: #003b0f;
+      --bg: #000000;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--green);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 15px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 20px;
+      overflow-x: hidden;
+      cursor: text;
+    }
+
+    #terminal {
+      width: 100%;
+      max-width: 860px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header bar */
+    #header {
+      border: 1px solid var(--green-dim);
+      border-bottom: none;
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--green-faint);
+      font-family: 'VT323', monospace;
+      font-size: 20px;
+      letter-spacing: 2px;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    #header .title { color: var(--green); }
+    #header .status { color: var(--green-dim); font-size: 16px; }
+
+    /* Main output area */
+    #output {
+      border: 1px solid var(--green-dim);
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      min-height: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .line {
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .line.dim    { color: var(--green-dim); }
+    .line.bright { color: var(--green); }
+    .line.warn   { color: #ffcc00; }
+    .line.error  { color: #ff3c3c; }
+    .line.success{ color: #00ff41; font-family: 'VT323', monospace; font-size: 19px; letter-spacing: 1px; }
+    .line.spacer { height: 8px; }
+    .line.sep    { color: var(--green-dim); }
+
+    @keyframes fadein { from{opacity:0;transform:translateY(2px)} to{opacity:1;transform:none} }
+    .line { animation: fadein 0.08s ease both; }
+
+    /* Input row */
+    #input-row {
+      border: 1px solid var(--green-dim);
+      border-top: none;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--green-faint);
+    }
+
+    #prompt-label {
+      color: var(--green);
+      white-space: nowrap;
+      font-family: 'VT323', monospace;
+      font-size: 20px;
+    }
+
+    #input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--green);
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 15px;
+      caret-color: var(--green);
+    }
+
+    #input::placeholder { color: var(--green-dim); opacity: 0.5; }
+
+    /* Scrollbar */
+    #output::-webkit-scrollbar { width: 6px; }
+    #output::-webkit-scrollbar-track { background: var(--bg); }
+    #output::-webkit-scrollbar-thumb { background: var(--green-dim); border-radius: 3px; }
+  </style>
+</head>
+<body>
+<div id="terminal">
+  <div id="header">
+    <span class="title">▓▒░ GEO-SCAN TERMINAL v2.3 ░▒▓</span>
+    <span class="status" id="clock">UPTIME: 00:00:00</span>
+  </div>
+  <div id="output"></div>
+  <div id="input-row">
+    <span id="prompt-label">SCAN&gt;</span>
+    <input id="input" type="text" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="enter coordinates (lat, lon)" />
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  LOCATION CONFIG
+//
+//  Coordinates are Base64-encoded to avoid plain-text exposure in source.
+//  To encode a new location, run this in your browser console:
+//    btoa(JSON.stringify({ la: LAT, lo: LON, r: RADIUS_MILES }))
+//  Paste the result as the `geo` string below.
+//
+//  Each entry: { name, geo, hitLines[] }
+// ─────────────────────────────────────────────
+const LOCATIONS = [
+
+  {
+    name: "KEY CITY PARK",
+    geo: "eyJsYSI6MzIuMzUyMjAyLCJsbyI6LTkwLjg4MTQ3OSwiciI6MC4wMDF9",
+    hitLines: [
+      "──────────────────────────────────────────────",
+      "SIGNAL LOCKED.  COORDINATES CONFIRMED.",
+      "──────────────────────────────────────────────",
+      "",
+      "This area has been renovated, and it's",
+      "a neat place to play minigold at if TOP ",
+      "GOLF is too expensive XD. ",
+      "",
+      "In fact, feel free to grab a shot with",
+      "the gold course in view!",
+      "",
+      "This does not have to be taken within the",
+      "park.",
+      "",
+      "SAT: Agent_U",
+      "──────────────────────────────────────────────",
+    ],
+  },
+
+  {
+    name: "VICKSBURG COMMUNITY GARDEN",
+    geo: "eyJsYSI6MzIuMzQ2Njg4LCJsbyI6LTkwLjg4MjQzNywiciI6MC4wMDF9",
+    hitLines: [
+      "──────────────────────────────────────────────",
+      "SIGNAL LOCKED.  COORDINATES CONFIRMED.",
+      "──────────────────────────────────────────────",
+      "",
+      "A nice walkable park of course! Just what ",
+      "we need 🙂‍↕️.",
+      "",
+      "The key item in this location is the bench",
+      "that should be near the coordiantes.",
+      "",
+      "SAT: Agent_U",
+      "──────────────────────────────────────────────",
+    ],
+  },
+
+  {
+    name: "PICKLEBALL COURTS",
+    geo: "eyJsYSI6MzIuMjc2MDYzLCJsbyI6LTkwLjkxNjE4OCwiciI6MC4wMDF9",
+    hitLines: [
+      "──────────────────────────────────────────────",
+      "SIGNAL LOCKED.  COORDINATES CONFIRMED.",
+      "──────────────────────────────────────────────",
+      "",
+      "Suprise suprise!",
+      "",
+      "Only recently found out about this, but it",
+      "looks great!",
+      "",
+      "Haven't had the chance to personally explore",
+      "so just do your best to take a photo that",
+      "shows that you're there!",
+      "",
+      "SAT: Agent_U",
+      "──────────────────────────────────────────────",
+    ],
+  },
+
+  {
+    name: "CORPS BOAT",
+    geo: "eyJsYSI6MzIuMzUwOTM4LCJsbyI6LTkwLjg4MzgxMywiciI6MC4wMDF9",
+    hitLines: [
+      "──────────────────────────────────────────────",
+      "SIGNAL LOCKED.  COORDINATES CONFIRMED.",
+      "──────────────────────────────────────────────",
+      "",
+      "There are many boats out there in the world,",
+      "but this one here in Vicksburg was ours.",
+      "",
+      "Feel free to go on in, it's now a museum",
+      "piece. In fact, that's where you should",
+      "take a picture!!",
+      "",
+      "SAT: Agent_U",
+      "──────────────────────────────────────────────",
+    ],
+  },
+
+  {
+    name: "CATFISH ALLEY PARK",
+    geo: "eyJsYSI6MzIuMzUxNTI5LCJsbyI6LTkwLjg4MTk3NCwiciI6MC4wMDF9",
+    hitLines: [
+      "──────────────────────────────────────────────",
+      "SIGNAL LOCKED.  COORDINATES CONFIRMED.",
+      "──────────────────────────────────────────────",
+      "",
+      "There are water jets that go off in this area!",
+      "Some have said that it's nice in the summer.",
+      "",
+      "Take a photo here!",
+      "(WATER JETS OPTIONAL)",
+      "",
+      "SAT: Agent_U",
+      "──────────────────────────────────────────────",
+    ],
+  },
+
+  {
+    name: "Grave",
+    geo: "eyJsYSI6MzIuMzUyODIwNCwibG8iOi05MC44ODI2Nzc0LCJyIjowLjAwMX0=",
+    hitLines: [
+      "──────────────────────────────────────────────",
+      "SIGNAL LOCKED.  COORDINATES CONFIRMED.",
+      "──────────────────────────────────────────────",
+      "",
+      "There's one grave here that...",
+      "Well, it stands out from the rest",
+      "",
+      "To the point where you can find this specific",
+      "gravestone on google maps.",
+      "",
+      "It sticks out like a sore thumb, but it should",
+      "be near if not at the coordinates. So just",
+      "keep an eye out!",
+      "",
+      "SAT: Agent_U",
+      "──────────────────────────────────────────────",
+    ],
+  },
+
+  {
+    name: "Theatre",
+    geo: "eyJsYSI6MzIuMzIzNDM3LCJsbyI6LTkwLjg4OTU2MiwiciI6MC4wMDF9",
+    hitLines: [
+      "──────────────────────────────────────────────",
+      "SIGNAL LOCKED.  COORDINATES CONFIRMED.",
+      "──────────────────────────────────────────────",
+      "",
+      "A simple photo with the premises in view",
+      "will suffice for this photo!",
+      "",
+      "SAT: Agent_U",
+      "──────────────────────────────────────────────",
+    ],
+  },
+  
+  // ── ADD MORE LOCATIONS BELOW ──────────────────
+  // To generate a geo string, run in browser console:
+  //   btoa(JSON.stringify({ la: LAT, lo: LON, r: RADIUS_MILES }))
+  //
+  // {
+  //   name: "SITE BRAVO",
+  //   geo: "<paste encoded string here>",
+  //   hitLines: [
+  //     "SIGNAL ACQUIRED.",
+  //     "You have found SITE BRAVO.",
+  //     "Do not linger.",
+  //   ],
+  // },
+];
+
+// Shown when coords don't match any location
+const MISS_RESPONSE = [
+  "──────────────────────────────────────────────",
+  "SCANNING...  NO SIGNAL DETECTED.",
+  "──────────────────────────────────────────────",
+  "",
+  "These coordinates fall outside all known",
+  "anomaly zones. Either the target has shifted,",
+  "or you are not where you need to be.",
+  "",
+  "Keep looking.",
+  "──────────────────────────────────────────────",
+];
+
+// ─────────────────────────────────────────────
+//  DECODE LOCATIONS AT RUNTIME
+// ─────────────────────────────────────────────
+const DECODED = LOCATIONS.map(loc => {
+  const { la, lo, r } = JSON.parse(atob(loc.geo));
+  return { ...loc, lat: la, lon: lo, radiusMiles: r };
+});
+
+// ─────────────────────────────────────────────
+//  BOOT SEQUENCE
+// ─────────────────────────────────────────────
+const BOOT_LINES = [
+  { text: "GEO-SCAN TERMINAL v2.3  //  CLASSIFIED", cls: "bright" },
+  { text: "Initializing satellite uplink...", cls: "dim" },
+  { text: "Uplink established.  Signal strength: ████████░░  84%", cls: "dim" },
+  { text: "Loading anomaly database...", cls: "dim" },
+  { text: `${LOCATIONS.length} site(s) indexed.  Access level: RESTRICTED`, cls: "dim" },
+  { text: "──────────────────────────────────────────────", cls: "sep" },
+  { text: "Enter GPS coordinates to scan for anomalies.", cls: "" },
+  { text: "Format:  lat, lon   (decimal degrees)", cls: "dim" },
+  { text: "Example: 32.3177, -90.8903", cls: "dim" },
+  { text: "──────────────────────────────────────────────", cls: "sep" },
+];
+
+// ─────────────────────────────────────────────
+//  DOM HELPERS
+// ─────────────────────────────────────────────
+const output = document.getElementById('output');
+const input  = document.getElementById('input');
+
+function addLine(text, cls = '') {
+  const div = document.createElement('div');
+  div.className = 'line' + (cls ? ' ' + cls : '');
+  div.textContent = text;
+  output.appendChild(div);
+  output.scrollTop = output.scrollHeight;
+}
+
+function addSpacer() { addLine('', 'spacer'); }
+
+async function boot() {
+  for (let i = 0; i < BOOT_LINES.length; i++) {
+    await delay(i === 0 ? 200 : 80);
+    addLine(BOOT_LINES[i].text, BOOT_LINES[i].cls);
+  }
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─────────────────────────────────────────────
+//  DISTANCE (Haversine)
+// ─────────────────────────────────────────────
+function haversineMiles(lat1, lon1, lat2, lon2) {
+  const R = 3958.8;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+            Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ─────────────────────────────────────────────
+//  PARSE INPUT
+// ─────────────────────────────────────────────
+function parseCoords(raw) {
+  const parts = raw.trim().split(/[\s,]+/);
+  if (parts.length < 2) return null;
+  const lat = parseFloat(parts[0]);
+  const lon = parseFloat(parts[1]);
+  if (isNaN(lat) || isNaN(lon)) return null;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+  return { lat, lon };
+}
+
+// ─────────────────────────────────────────────
+//  SCAN LOGIC
+// ─────────────────────────────────────────────
+async function scan(raw) {
+  addSpacer();
+  addLine(`SCAN> ${raw}`, 'dim');
+  addSpacer();
+
+  const coords = parseCoords(raw);
+  if (!coords) {
+    addLine("ERROR: Could not parse coordinates.", "error");
+    addLine("Expected format: lat, lon  (e.g. 32.3177, -90.8903)", "dim");
+    addSpacer();
+    return;
+  }
+
+  // Scanning animation
+  addLine("Scanning...  ░░░░░░░░░░░░░░░░░░░░", "dim");
+  await delay(300);
+  addLine("Scanning...  ████░░░░░░░░░░░░░░░░", "dim");
+  await delay(250);
+  addLine("Scanning...  ████████████░░░░░░░░", "dim");
+  await delay(250);
+  addLine("Scanning...  ████████████████████", "dim");
+  await delay(200);
+  addSpacer();
+
+  // Check each decoded location
+  let hit = null;
+  for (const loc of DECODED) {
+    const dist = haversineMiles(coords.lat, coords.lon, loc.lat, loc.lon);
+    if (dist <= loc.radiusMiles) { hit = loc; break; }
+  }
+
+  const lines = hit ? hit.hitLines : MISS_RESPONSE;
+  const cls   = hit ? "success" : "warn";
+
+  for (const line of lines) {
+    await delay(40);
+    if (line === "") { addSpacer(); }
+    else { addLine(line, cls); }
+  }
+
+  addSpacer();
+}
+
+// ─────────────────────────────────────────────
+//  INPUT HANDLER
+// ─────────────────────────────────────────────
+input.addEventListener('keydown', async (e) => {
+  if (e.key === 'Enter') {
+    const val = input.value.trim();
+    input.value = '';
+    if (!val) return;
+    await scan(val);
+  }
+});
+
+document.body.addEventListener('click', () => input.focus());
+
+// ─────────────────────────────────────────────
+//  UPTIME CLOCK
+// ─────────────────────────────────────────────
+const clockEl = document.getElementById('clock');
+const startTime = Date.now();
+setInterval(() => {
+  const s = Math.floor((Date.now() - startTime) / 1000);
+  const h = String(Math.floor(s / 3600)).padStart(2,'0');
+  const m = String(Math.floor((s % 3600) / 60)).padStart(2,'0');
+  const sec = String(s % 60).padStart(2,'0');
+  clockEl.textContent = `UPTIME: ${h}:${m}:${sec}`;
+}, 1000);
+
+// ─────────────────────────────────────────────
+//  BOOT
+// ─────────────────────────────────────────────
+boot().then(() => input.focus());
+</script>
+</body>
+</html>
